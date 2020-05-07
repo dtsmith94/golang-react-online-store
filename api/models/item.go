@@ -12,34 +12,39 @@ var (
 
 // Item represents a product which can be browsed and added to a customer's basket
 type Item struct {
-	ID                  int
-	Name                string
-	Keywords            []string
-	Price               int
-	StockLevel          int
-	IsActive            bool
-	ShortDesc, LongDesc string
+	ID        int      `json:"id"`
+	Name      string   `json:"name"`
+	Keywords  []string `json:"keywords"`
+	Price     int      `json:"price"`
+	ShortDesc string   `json:"shortDesc"`
+	LongDesc  string   `json:"longDesc"`
 }
 
-// GetItemByID returns an Item from the collection with the matching ID
-func GetItemByID(id int) (Item, error) {
+// GetItem returns an Item from the collection with the matching ID
+func (i *Item) GetItem() error {
 	for _, item := range items {
-		if item.ID == id {
-			return *item, nil
+		if item.ID == i.ID {
+			i = item
+			return nil
 		}
 	}
 
-	return Item{}, fmt.Errorf("Item with ID '%v' not found", id)
+	return fmt.Errorf("Item with ID '%v' not found", i.ID)
 }
 
-// AddItem adds a new Item to the collection of Items
-func AddItem(item Item) (Item, error) {
-	if item.ID != 0 {
-		return Item{}, errors.New("New Item must not include ID or it must be set to zero")
+// CreateItem adds a new Item to the collection of Items
+func (i *Item) CreateItem() error {
+	if i.ID != 0 {
+		return errors.New("New Item must not include ID or it must be set to zero")
 	}
 
-	item.ID = newItemID
+	i.ID = newItemID
 	newItemID++
-	items = append(items, &item)
-	return item, nil
+	items = append(items, i)
+	return nil
+}
+
+// GetAllItems returns all items
+func GetAllItems() ([]*Item, error) {
+	return items, nil
 }

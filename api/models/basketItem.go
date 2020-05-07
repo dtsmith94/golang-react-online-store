@@ -1,59 +1,84 @@
 package models
 
-import "errors"
-
 var (
 	basketItems []*BasketItem
 )
 
 // BasketItem represents the relationship between Baskets and Items
 type BasketItem struct {
-	BasketID int
-	ItemID   int
-	Quantity int
+	Item     Item `json:"item"`
+	BasketID int  `json:"basketId"`
+	ItemID   int  `json:"itemId"`
+	Quantity int  `json:"quantity"`
 }
 
-// AddBasketItem associates an item with a basket
-func AddBasketItem(basketID int, itemID int) (BasketItem, error) {
+// CreateBasketItem associates an item with a basket
+func (bi *BasketItem) CreateBasketItem() error {
 
 	// check the basket and item exist first
-	_, error := GetBasketByID(basketID)
+	basket := Basket{ID: bi.BasketID}
+	err := basket.GetBasket()
 
-	if error != nil {
-		return BasketItem{}, error
+	if err != nil {
+		return err
 	}
 
-	_, error = GetItemByID(itemID)
+	item := Item{ID: bi.ItemID}
+	err = item.GetItem()
 
-	if error != nil {
-		return BasketItem{}, error
+	if err != nil {
+		return err
 	}
 
-	// check if this item has already been added to this basket
-	newBasketItem, error := getBasketItem(basketID, itemID)
+	// check if this item has already been added to this basket. If it has increment quantity by 1
+	itemAlreadyInBasket := false
+	for i, basketItem := range basketItems {
+		if basketItem.BasketID == bi.BasketID && basketItem.ItemID == bi.ItemID {
+			itemAlreadyInBasket = true
 
-	// if a BasketItem was found, increase quantity by one
-	if error == nil {
-		newBasketItem.Quantity++
-	} else {
-		newBasketItem = BasketItem{
-			BasketID: basketID,
-			ItemID:   itemID,
-			Quantity: 1,
+			basketItems[i].Quantity++
+			bi.Quantity = basketItems[i].Quantity
+			return nil
 		}
-
-		basketItems = append(basketItems, &newBasketItem)
 	}
 
-	return newBasketItem, nil
+	// if item not already in basket, set quanitity to 1 and add to list
+	if !itemAlreadyInBasket {
+		bi.Quantity = 1
+		basketItems = append(basketItems, bi)
+	}
+
+	return nil
 }
 
-func getBasketItem(basketID int, itemID int) (BasketItem, error) {
+// GetItemsInBasket gets all the items which are in a specific basket
+func GetItemsInBasket(basketID int) ([]BasketItem, error) {
+
+	// check the basket exists first
+	basket := Basket{ID: basketID}
+	err := basket.GetBasket()
+
+	if err != nil {
+		return []BasketItem{}, err
+	}
+
+	filteredBasketItems := []BasketItem{}
+
 	for _, basketItem := range basketItems {
-		if basketItem.BasketID == basketID && basketItem.ItemID == itemID {
-			return *basketItem, nil
+		if basketItem.BasketID == basketID {
+
+			item := Item{ID: basketItem.ItemID}
+			err := item.GetItem()
+
+			if err != nil {
+				return []BasketItem{}, err
+			}
+
+			basketItem.Item = item
+
+			filteredBasketItems = append(filteredBasketItems, *basketItem)
 		}
 	}
 
-	return BasketItem{}, errors.New("Unable to find BasketItem")
+	return filteredBasketItems, nil
 }
